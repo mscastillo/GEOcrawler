@@ -1,0 +1,125 @@
+#!/bin/bash
+
+## VARIABLES INITIALIZATION # # # # # # # # # # # # # # # # # # # # # # 
+ # Please, do not modify the next variables. Use -o option for custom outputs.
+     TODAY=$(date +%Y%m%d)
+    SUFFIX=$RANDOM
+OUTPUTFILE='pubmedcrawler_output_'$TODAY.tsv
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+usage(){
+	echo 
+    echo -e '\033[1mUtility to grab infromation from PUBMED.\033[0m'
+	echo 
+	echo -e '\033[1mNAME\033[0m'
+	echo '     pubmedcrawler'
+	echo 
+	echo -e '\033[1mSYNOPSIS\033[0m'
+	echo '     usage: pubmedcarler [-i <PUBMED accession number>] (-f <input file>) (-o <output file>)'
+	echo 
+    echo -e '\033[1mDESCRIPTION\033[0m'
+	echo '     This utility will grab some relevant information from the PUBMED.'
+	echo '     Collected data will be reported into a table, saved as a tabular separated value (TSV) file.'
+	echo 
+	echo '     The options are as follows:'
+	echo 
+    echo -e '     \033[1m-h\033[0m | \033[1m--help\033[0m'
+    echo '             Show this message'
+    echo -e '     \033[1m-i\033[0m | \033[1m--id\033[0m <argument>'
+	echo '             The PUBMED id of the corresponding publication to be processed.'
+    echo -e '     \033[1m-f\033[0m | \033[1m--file\033[0m <argument>'
+	echo '             Altarnatively to the single-publication mode, pubmedcrawler can be executed in batch mode.'
+	echo '             Multiple publications can be parsed in a one-column text file, with a PUBMED identifier per row.'
+	echo '             If present, the -i/--id option will be ommited.'
+    echo -e '     \033[1m-o\033[0m | \033[1m--output\033[0m <argument>'
+	echo '             An optional argument with the name of the output file.'
+	echo -e '          By default, this file will be named geocrawler_output_<date>.tsv.'
+	echo '             The output format will be tab-separated values (tsv) independently of the file extension.'
+	echo
+    echo -e '\033[1mEXAMPLES\033[0m'
+	echo '     # To process a single series with a custom output file:'
+	echo '             pubmedcrawler -i 25270877 -o a_very_good_paper.tsv'
+	echo
+	echo '     # To process a superseries and all its subseries with the staging output:'
+	echo '             echo 25270877 > papers.txt'
+	echo '             echo 23696358 >> papers.txt'
+	echo '             pubmedcrawler -f papers.txt'
+	echo
+    echo -e '\033[1mLAST UPDATE\033[0m'
+	echo '     23/10/2014'
+	echo
+	exit 1
+}
+
+# Colons appearing after a flag indicate that getopts should expect an argument with that flag. Using the flag without an argument causes an error.
+OPTIONS=$(getopt -o "hi:f:o:" -l "help,id:,file:,output:" -- "$@")
+if [[ $? -ne 0 ]] ; then
+  # Unknown option.
+  echo  -e "Type \033[1mpubmedcrawler -h\033[0m for help." ; exit 1
+fi
+eval set -- "$OPTIONS"
+while true ; do
+  case "$1" in
+    -h | --help ) usage ;
+    shift 2;;
+    -i | --id) ID=$2 ;
+    shift 2;;
+	-f | --file) if [ -f $2 ] ; then INPUTFILE=$2 ; else echo "File $2 doesn't exists." ; exit 1 ; fi
+	shift 2;;
+	-o | --output) OUTPUTFILE=$2 ;
+	shift 2;;
+    -- | --*) break ;;
+  esac
+done
+
+# ASCII logo created with 'http://www.network-science.de/ascii/' using the slanted font-face
+echo
+echo "==> Running PUBMEDCRAWLER"
+echo 
+
+if [[ $INPUTFILE == "" ]] ; then
+  IDs=($ID)
+  echo "    in single mode..."
+else
+  IDs=($(awk '{ print $0 }' $INPUTFILE | sort | uniq ))
+  echo "    in multiple-publications mode (${#IDs[@]} publications found)..."
+fi
+
+## Initializing $OUTPUTFILE <i>.
+
+echo "id"$'\t'"pubmed"$'\t'"title"$'\t'"cite" > $OUTPUTFILE
+
+for i in $( seq 0 $((${#IDs[@]} - 1)) ) ; do
+
+## Download and processing the information.
+  ID=${IDs[i]}
+  echo
+  echo "  - Processing publication $ID ($(($i + 1)) of ${#IDs[@]})."
+  wget -c -nv -q "http://www.ncbi.nlm.nih.gov/pubmed/"$ID -O $ID".html"
+  dos2unix -q $ID.soft
+  
+  CITE=$( grep -o '<div class="cit">.*</div>' $ID.html | sed 's/.*<div class="cit">//;s/<\/div>.*//' | sed -n '/^$/!{s/<[^>]*>//g;p;}' )
+  REF=$( echo $CITE | awk 'BEGIN{FS=". doi: "}{print $1}' )
+  DOI=$( echo $CITE | awk 'BEGIN{FS=". doi: "}{print $2}' )  
+  if [[ $( echo $DOI | grep "Epub" ) == "" ]] ; then
+    DOI=$( echo $CITE | awk 'BEGIN{FS=". doi: "}{print $2}' | sed 's/[./]\+[^./]*$//' )  
+    EPUB="N/A"
+  else
+  CITE=$DOI
+  DOI=$( echo $CITE | awk 'BEGIN{FS=". Epub "}{print $1}' )  
+  EPUB=$( echo $CITE | awk 'BEGIN{FS=". Epub "}{print $2}' | sed 's/[./]\+[^./]*$//' )  
+  fi
+  TITLE=$( grep -o '<h1>.*</h1>' $ID.html | sed 's/.*<h1>//;s/<\/h1>.*//' | sed -n '/^$/!{s/<[^>]*>//g;p;}' | sed 's/[./]\+[^./]*$//' )
+  
+## Writting the output <w>.
+  echo ""$'\t'$ID$'\t'$TITLE$'\t'$REF$'\t'$DOI $'\t'$EPUB >> $OUTPUTFILE
+
+  rm -f $ID".html"
+  
+done
+echo
+echo "  - Output file: $OUTPUTFILE "
+echo
+echo "==> Done."
+echo
