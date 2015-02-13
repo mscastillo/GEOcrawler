@@ -3,7 +3,7 @@ GEOcrawler
 
 A web-crawler to retrieve information from GEO.
 
-# What is for?
+### What is for?
 
 This repository includes a program for downloading and processing data from Gene Expression Omnibus (GEO). The results are in a table with meta-information characterizing all experiments included in a given study grom GEO.
 
