@@ -1,0 +1,314 @@
+#!/bin/bash
+
+## VARIABLES INITIALIZATION # # # # # # # # # # # # # # # # # # # # # # 
+ # Please, do not modify the next variables. Use -o option for custom outputs.
+     TODAY=$(date +%Y%m%d)
+    SUFFIX=$RANDOM
+OUTPUTFILE='geocrawler_output_'$TODAY.tsv
+## KEYWORDS ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+ # Feel free to add additional keywords in the current fields or add a new field for a custom search, but please do not overwrite the already existing ones. 
+  HAEMCODE=('leukaemia' 'haematopoietic' 'hematopoietic' 'erythroid' 'erythroblast' 'megakaryocyte' 'megakaryocytic' 'macrophage' 'mast cell' 'monocyte' 'CD34' 'cord blood' 'bone marrow' 'leukemic' 'lymphoblastic' 'Th1' 'Th2' 'CD4' 'Jurkat' 'SEM' 'REH' 'THP-1' 'blood' 'leukemia' 'stem' 'b cell' 'b-cell' 't cell' 't-cell' 'lymphoblast' 'umbilical' 'myeloma' 'plasma' 'myeloid' 'K526' 'HL-60' 'KG-1' 'kasumi')
+    ESCODE=( 'embryo' 'embryonic stem cell' 'ESC' 'ES cell' 'TT2' 'TC1' 'CCE' 'CGR8' 'GE-11' 'HM-1' )
+   LEUKODE=( '416B' '697' '70Z/3' '745-A' 'A3' 'acute lymphoblastic leukemia' 'acute megakaryoblastic leukemia' 'acute megakaryocytic leukemia' 'acute myeloid leukemia' 'AML' 'acute nonlymphoblastic leukemia' 'acute promyelocytic leukemia' 'adult T-cell lymphoma' 'ALL-SIL' 'BALL-1' 'basophilic leukemia' 'B-cell acute lymphoblastic leukemia' 'B-cell chronic lymphocytic leukemia' 'B-cell leukemia' 'BV173' 'C-81' 'CCRF-CEM' 'CCRF-HSB-2' 'CEM' 'CEM-ADR5000' 'CEM-VBL10' 'CEM-VBL100' 'CEM-VBL16' 'CEM-VCR R' 'chronic lymphocytic leukemia' 'chronic myeloid leukemia' 'CMK' 'CMK-86' 'EHEB' 'EoL-1' 'eosinophilic leukemia' 'erythroleukemia' 'H9' 'hairy leukemia' 'HAL-01' 'HBL-3' 'HEL' 'HEL-92.1.7' 'HL-60' 'HL60/ADR' 'HL60/DNR' 'HL-60/MX-2' 'HL-60 (TB)' 'HL-60/Vinc' 'HPB-ALL' 'I 9.2' 'J-96' 'J.CaM1.6' 'JURKAT' 'JURKAT E-6.1' 'K-562' 'K-562adr' 'K-562R' 'K-562/R7' 'Kasumi-1' 'KBM-5' 'KCL-22' 'KE-37' 'KG-1' 'KG-1A' 'KM-3' 'KOCL-33' 'KOCL-44' 'KOCL-45' 'KOCL-58' 'KOCL-69' 'KOPN-1' 'KOPN-41' 'KOPT-K1' 'KU-812' 'KU-812F' 'L-1210' 'LAMA-84' 'LAMA-87' 'LC4-1' 'leukemia' 'LK-63' 'lymphoblastic leukemia' 'lymphocytic leukemia' 'M-07' 'M-07E' 'M-1 myeloid leukemia' 'MB-02' 'MEG-01' 'MEG-01S' 'MEL' 'MEL-745A' 'MEL-745A cl. DS19' 'ML-1' 'ML-2' 'Mo-B' 'MOLM-13' 'MOLM-16' 'MOLM-6' 'MOLT' 'MOLT-13' 'MOLT-14' 'MOLT-16' 'MOLT-17' 'MOLT-3' 'MOLT-4' 'MOLT-4F' 'monocytic leukemia' 'Mono-Mac-1' 'Mono-Mac-6' 'Mo-T' 'MUTZ-8' 'MV4-11' 'myeloid leukemia' 'myelomonocytic leukemia' 'NALL-1' 'NALM-17' 'NALM-20' 'NALM-24' 'NALM-26' 'NALM-6' 'natural killer large granular lymphocytic leukemia' 'NB-4' 'OCI-AML2' 'OCI-AML3' 'OCI-AML5' 'OCI-M1' 'OCI-M2' 'OKM-2T' 'P12-ICHIKAWA' 'P-388' 'PEER' 'PLB-985' 'pre-B acute lymphoblastic leukemia' 'promyelocytic leukemia' 'RAW-264.7' 'RBL-2H3' 'RCH-ACV' 'REH' 'RPMI-8402' 'RPMI-8866' 'RS4-11' 'RWLeu-4' 'SCMC-L10' 'SET-2' 'SHI-1' 'TALL-1' 'TALL-104' 'T-cell acute lymphoblastic leukemia' 'T-cell chronic lymphocytic leukemia' 'TF-1' 'TF-1 BCR-ABL' 'THP-1' 'THP-6' 'THP-8' 'T-lymphoblastic leukemia' 'UKE-1' 'UT-7' 'UTP-2' 'UTP-L10' 'UTP-L5' 'WEHI-3' 'WEHI-3B' 'YN-1' 'YT' )
+ # Use the next line as a template to add a new field for keywords searching. After adding your custom field, update the keywords searching (look for the <k> flag in the script), the $OUTPUTFILE initialization and the writting (marked with the <i> and <w> flags).
+ #   FIELD=( 'keyword_1' 'keyword_3' 'keyword_3' )
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+usage(){
+	echo 
+    echo -e '\033[1mUtility to grab infromation from GEO database.\033[0m'
+	echo 
+	echo -e '\033[1mNAME\033[0m'
+	echo '     geocrawler'
+	echo 
+	echo -e '\033[1mSYNOPSIS\033[0m'
+	echo '     usage: geocrawler [-g <GEO accession number>] [-f <input file>] (-o <output file>) (--staging) (--superseries)'
+	echo 
+    echo -e '\033[1mDESCRIPTION\033[0m'
+	echo '     This utility will grab all samples of a given series and it will process them.'
+	echo '     Collected data will be reported into a table, saved as a tabular separated value (TSV) file.'
+	echo 
+	echo '     The options are as follows:'
+	echo 
+    echo -e '     \033[1m-h\033[0m | \033[1m--help\033[0m'
+    echo '             Show this message'
+    echo -e '     \033[1m-g\033[0m | \033[1m--series\033[0m <argument>'
+	echo '             The GEO accession number of the corresponding series to be processed.'
+    echo -e '     \033[1m-f\033[0m | \033[1m--file\033[0m <argument>'
+	echo '             Altarnatively to the single-series mode, geocrawler can be executed in batch mode.'
+	echo '             Multiple series can be parsed in a one-column text file, with a GEO series per row.'
+	echo '             If present, the -g/--series option will be ommited.'
+    echo -e '     \033[1m-o\033[0m | \033[1m--output\033[0m <argument>'
+	echo '             An optional argument with the name of the output file.'
+	echo -e '          By default, this file will be named geocrawler_output_<date>.tsv.'
+	echo '             The output format will be tab-separated values (tsv) independently of the file extension.'
+    echo -e '     \033[1m--staging\033[0m'
+	echo '             An optional flag that modifies the output format to mimic the staging table.'
+	echo '             On stagging mode, the exp_type field is filled using the library strategy and selection.'
+	echo '             This field would be ChIP,ChIP-Seq for histone and tf experiment types.'
+    echo -e '     \033[1m--superseries\033[0m'
+	echo '             An optional flag testing if any input series belong to a superseries.'
+	echo '             On the superseries mode, geocrawler will change any subseries by its superseries.'
+	echo '             In superseries mode with multiple series input, geocrawler will skip all subseries if their superseries are also parsed.'
+	echo
+    echo -e '\033[1mEXAMPLES\033[0m'
+	echo '     # To process a single series with a custom output file:'
+	echo '             geocrawler -g GSE25000 -o GSE25000_info.tsv'
+    echo
+	echo '     # To process a single series and get it with the staging output:'
+	echo '             geocrawler -g GSE45144 --staging'
+	echo
+	echo '     # To process multiple series using a custom output file name with the staging output:'
+	echo '             echo GSE25000 > myseries.txt'
+	echo '             echo GSE45144 >> myseries.txt'
+	echo '             geocrawler -f myseries.txt -o mytable.txt --staging'
+	echo
+	echo '     # To process a superseries and all its subseries with the staging output:'
+	echo '             echo GSE51926 > series.tsv'
+	echo '             echo GSE51816 >> series.tsv'
+	echo '             echo GSE51553 >> series.tsv'
+	echo '             geocrawler -f series.tsv --staging --superseries'
+	echo
+    echo -e '\033[1mLAST UPDATE\033[0m'
+	echo '     12/11/2013'
+	echo
+	exit 1
+}
+
+# Colons appearing after a flag indicate that getopts should expect an argument with that flag. Using the flag without an argument causes an error.
+OPTIONS=$(getopt -o "hg:f:o:" -l "help,series:,file:,output:" --long "staging,superseries" -- "$@")
+if [[ $? -ne 0 ]] ; then
+  # Unknown option.
+  echo  -e "Type \033[1mgeocrawler --help\033[0m for help." ; exit 1
+fi
+eval set -- "$OPTIONS"
+while true ; do
+  case "$1" in
+    -h | --help ) usage ;
+    shift 2;;
+    -g | --series) GSE=$2 ;
+    shift 2;;
+	-f | --file) if [ -f $2 ] ; then INPUTFILE=$2 ; else echo "File $2 doesn't exists." ; exit 1 ; fi
+	shift 2;;
+	-o | --output) OUTPUTFILE=$2 ;
+	shift 2;;
+	--staging ) STAGING=1 ;
+	shift ;;
+	--superseries ) SUPERSERIES=1 ;
+	shift ;;
+    -- | --*) break ;;
+  esac
+done
+
+
+# ASCII logo created with 'http://www.network-science.de/ascii/' using the slanted font-face
+echo
+echo "==> Running..."
+echo -e '                                               __          '
+echo -e '    ____ ____  ____  ______________ __      __/ /__  _____ '
+echo -e '   / __ `/ _ \/ __ \/ ___/ ___/ __ `/ | /| / / / _ \/ ___/ '
+echo -e '  / /_/ /  __/ /_/ / /__/ /  / /_/ /| |/ |/ / /  __/ /     '
+echo -e '  \__, /\___/\____/\___/_/   \__,_/ |__/|__/_/\___/_/      '
+echo -e ' /____/                                                    '
+echo 
+
+if [[ $INPUTFILE == "" ]] ; then
+  series=($GSE)
+  echo "    in single series mode..."
+else
+  series=($(awk '{ print $0 }' $INPUTFILE | uniq ))
+  echo "    in multiple series mode (${#series[@]} series found)..."
+fi
+
+## Initializing $OUTPUTFILE <i>.
+if [[ $STAGING == 1 ]] ; then
+  echo "    with the staging format output."
+  echo "id"$'\t'"CT_General"$'\t'"CT_Subtype"$'\t'"bto"$'\t'"factor"$'\t'"factorGeneId"$'\t'"details"$'\t'"GSE"$'\t'"GSM"$'\t'"groupname"$'\t'"repository"$'\t'"exp_type"$'\t'"filename"$'\t'"control"$'\t'"SRX"$'\t'"pvalue"$'\t'"merged"$'\t'"paired"$'\t'"mapping_genome"$'\t'"total_raw_reads"$'\t'"trimmed"$'\t'"reads_after_trimming"$'\t'"uniquely_mappable_reads"$'\t'"Final_peak_number"$'\t'"aligner_used"$'\t'"raw_data_code"$'\t'"In_house_code"$'\t'"Completion_date"$'\t'"Added_to_compendium"$'\t'"status"$'\t'"processing_comments"$'\t'"alignment_report"$'\t'"organism"$'\t'"submitter" > $OUTPUTFILE
+else
+  echo "    with standard output."
+  echo "GSM"$'\t'"GSE"$'\t'"GPL"$'\t'"SRA"$'\t'"BIOPROJECT"$'\t'"BIOSAMPLE"$'\t'"PubMed"$'\t'"Date"$'\t'"Sample title"$'\t'"Instrument"$'\t'"Library strategy"$'\t'"Library selection"$'\t'"Taxonomy"$'\t'"Name"$'\t'"Description"$'\t'"Characteristics"$'\t'"Raw reads"$'\t'"Paired-end reads"$'\t'"Haemcode"$'\t'"Escode"$'\t'"Leukode" > $OUTPUTFILE
+fi
+
+for i in $( seq 0 $((${#series[@]} - 1)) ) ; do
+
+## Download and processing the series information.
+  GSE=${series[i]}
+  echo
+  echo "==> Processing series $GSE ($(($i + 1)) of ${#series[@]})."
+  wget -c -nv -q "http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc="$GSE"&targ=self&view=quick&form=text&token=_blank" -O $GSE.soft
+  dos2unix -q $GSE.soft
+  
+  if [[ $SUPERSERIES == 1 ]] ; then
+    echo "  - Looking for superseries..."
+    superseries=$(grep -P '!Series_relation = SubSeries of: GSE(\d+)' $GSE.soft | grep -P -o 'GSE(\d+)')
+    if [[ $superseries == "" ]] ; then
+      echo "    no superseries found."
+    else
+      match=$( echo ${series[@]} | grep -o $superseries )
+      rm -f $GSE".soft"   
+      if [[ $match == "" ]] ; then
+        echo "    superseries found! Current series will be replaced by its superseries $superseries."
+        GSE=$superseries
+        echo
+        wget -c -nv -q "http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc="$GSE"&targ=self&view=quick&form=text&token=_blank" -O $GSE.soft
+        dos2unix -q $GSE.soft
+      else
+        echo "    superseries found! All samples belonging to current series will be processed within its superseries $superseries."
+      fi
+    fi
+  fi  
+  
+  if [[ -f $GSE.soft ]] ; then
+    echo "  - Looking for samples..."
+    samples=( $(grep '!Series_sample_id = ' $GSE".soft" | grep -P -o 'GSM[\d]*') )
+    echo "    "${#samples[@]}" samples found."
+   # The next information is common to all samples comprissing the current series.    
+    date=$( grep '!Series_submission_date' $GSE.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' | xargs )
+    submissiondate=$(date -d "$date" +%Y-%m-%d)
+    pubmedid=$(echo $(grep '!Series_pubmed_id' $GSE.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }') | tr ' ' ',')
+    bioproject=$( grep 'Series_relation = BioProject:' $GSE.soft | awk 'BEGIN{FS="/"}{print $NF}' ) # http://www.ncbi.nlm.nih.gov/bioproject/$bioproject    
+    today=$(date +%Y-%m-%d)
+    rm -f $GSE".soft"
+  else
+    samples=()
+  fi
+  
+  for k in $( seq 0 $((${#samples[@]} - 1)) ) ; do
+ 
+## Download and processing sample information.
+    GSM=${samples[$k]}
+    echo "  · Processing $GSM..."
+    wget -c -nv -q "http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc="$GSM"&targ=self&view=brief&form=text&token=_blank" -O $GSM.soft
+    dos2unix -q $GSM.soft
+    GPL=$( grep '!Sample_platform_id' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' | xargs )
+    librarystrategy=$( grep '!Sample_library_strategy' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' | xargs )
+    libraryselection=$( grep '!Sample_library_selection' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' | xargs )
+    experimenttype=$( echo $libraryselection $librarystrategy | tr ' ' ',' )
+    srapath=$( grep '!Sample_supplementary_file' $GSM".soft" | awk 'BEGIN { FS="/ByExp/sra/"; RS="\n" }  { print $2 }' | xargs | tr ' ' ',' )
+    srafiles=( $( grep '!Sample_supplementary_file' $GSM".soft" | grep -o -P '/SRX/SRX(\d+)/SRX(\d+)'| awk 'BEGIN { FS="/"; RS="\n" } { print $4 }' ) )
+    instrument=$( grep '!Sample_instrument_model' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' | xargs )
+    biosample=$( grep '!Sample_relation = BioSample:' $GSM.soft | awk 'BEGIN{FS="/"}{print $NF}' ) # http://www.ncbi.nlm.nih.gov/biosample/$biosample
+    if [[ $srapath == "" ]] ; then
+      SRA=
+      run=
+      rawdatacode=
+      grep '!Sample_supplementary_file' $GSM".soft" | grep '.fa.gz' > fasta_$SUFFIX.temp
+      grep '!Sample_supplementary_file' $GSM".soft" | grep '.fasta.gz' >> fasta_$SUFFIX.temp
+      counter=$(cat fasta_$SUFFIX.temp | wc -l)
+      if [[ $counter > 0 ]] ; then
+        srapath="fasta"
+        SRA="fasta"
+        run=( $( cat fasta_$SUFFIX.temp | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' ) )
+#        rawdatacode=$( echo ${run[@]}  | tr ' ' ',' ) # uncomment this line to capture the ftp path of all fasta files and put them in the "raw_data_code" field # # # # # # # # # # # # # # # # # # # # # # # # 
+      fi
+      rm -f fasta_$SUFFIX.temp
+    fi
+    taxid=$( grep '!Sample_taxid_ch1' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' | xargs )
+    if [[ $taxid == 9606 ]] ; then organism='hsa' ; mappinggenome='hg19' ; aligner='bowtie' ; else
+    if [[ $taxid == 10090 ]] ; then organism='mmu' ; mappinggenome='mm10' ; aligner='bowtie2' ; else organism="Taxonomy ID: $taxid" ; mappinggenome='' ; aligner='' ; fi ; fi
+    title=$( grep '!Sample_title' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' )
+    sourcename=$( grep '!Sample_source_name_ch1' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' )
+    description=$( grep '!Sample_description' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' )
+    characteristics=$( grep '!Sample_characteristics' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' )
+    array=( $( grep '!Sample_extract_protocol' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' ) )
+    extractionprotocol=$( echo ${array[@]} )
+    array=( $( grep '!Sample_growth_protocol' $GSM.soft | awk 'BEGIN { FS=" = "; RS="\n" }  { print $2 }' ) )
+    growthprotocol=$( echo ${array[@]} )
+    array=( "$title" " ::: " "$growthprotocol" " ::: " "$extractionprotocol" " ::: " "$sourcename" " ::: " "$description" " ::: " "$characteristics" )
+    details=$( echo ${array[@]} )
+
+ # Performing keywords search <k>.    
+    keywords01=0
+    for n in $( seq 0 $((${#HAEMCODE[@]} - 1)) ) ; do
+      text=${HAEMCODE[n]}
+      counts=$(grep -o "$text" $GSM.soft | wc -l)
+      keywords01=$(bc <<< "$counts + $keywords01")
+    done
+    keywords02=0
+    for n in $( seq 0 $((${#ESCODE[@]} - 1)) ) ; do
+      text=${ESCODE[n]}
+      counts=$(grep -o "$text" $GSM.soft | wc -l)
+      keywords02=$(bc <<< "$counts + $keywords02")
+    done
+    keywords03=0
+    for n in $( seq 0 $((${#LEUKODE[@]} - 1)) ) ; do
+      text=${ESCODE[n]}
+      counts=$(grep -o "$text" $GSM.soft | wc -l)
+      keywords03=$(bc <<< "$counts + $keywords03")
+    done
+    if [[ $( bc <<< "$keywords01 > $keywords02" ) == 1 ]] ; then repository='haemcode' ; else if [[ $( bc <<< "$keywords01 < $keywords02" ) == 1 ]] ; then repository='escode' ; else repository='codex' ; fi ; fi
+
+## Download and processing SRA information.
+	rawreads=0
+	reverse=0
+	run=()
+	for n in $( seq 0 $((${#srafiles[@]} - 1)) ) ; do
+	  SRA=${srafiles[n]}
+      wget -c "http://www.ncbi.nlm.nih.gov/sra/"$SRA -O $SRA.temp 2> temp_$SUFFIX.txt
+      dos2unix -q $SRA.temp
+      antibody=$(cat $SRA.temp | grep -o -P 'antibody:.*' | awk 'BEGIN{FS=">"}{print $2}' | awk 'BEGIN{FS="<"}{print $1}' | xargs )
+      if [[ $antibody == "" ]] ; then antibody=$title ; fi
+      spots=($( grep -o -P '<td align="right">((\d+),)?(\d+),(\d+)</td>' $SRA.temp | grep -o -P '((\d+),)?(\d+),(\d+)' | tr -d ',' ) )
+      for m in $( seq 0 $((${#spots[@]} - 1)) ) ; do
+        rawreads=$( bc <<< "$rawreads + ${spots[$m]}" )
+      done
+      reverse=$( bc <<< "$reverse + $( grep -o -P '<span class="read-body">reverse</span>' $SRA.temp | wc -l )" )
+      run=( "${run[@]}" $( grep -o -P 'run=(\S+)(\d+)"' $SRA.temp | awk 'BEGIN { FS="run="; RS="\"" }  { print $2 }' ) )
+      rm -f $SRA.temp
+    done
+    if [[ $srapath != "fasta" ]] ; then
+      SRA=$( echo ${SRA[@]}  | tr ' ' '-' )
+      rawdatacode=$( echo ${run[@]}  | tr ' ' '-' )
+    fi
+
+ # Testing paired-end reads.
+    if [[ $reverse == 0 ]] ; then
+      paired="no"
+    else
+      if [[ $reverse == ${#srafiles[@]} ]] ; then
+        paired="yes"
+      else
+        paired="" # This would be a weird case (I've never seen it, but just in case) corresponding to multiple SRA files, but not all of them with the same paired status (it should be manually curated).
+      fi
+    fi
+    
+## Download and processing RUN information (alternative way for detecting paired-end reads)
+	is_paired=()
+	is_single=()
+	for n in $( seq 0 $((${#run[@]} - 1)) ) ; do
+	  SSR=${run[n]}
+      wget -c "http://trace.ncbi.nlm.nih.gov/Traces/sra/?run="$SSR -O $SSR.temp 2> temp_$SUFFIX.txt
+      dos2unix -q $SSR.temp
+      is_paired=( "${is_paired[@]}" $( grep -o -i "<td>paired</td>" $SSR.temp | wc -l ) )
+      is_single=( "${is_single[@]}" $( grep -o -i "<td>single</td>" $SSR.temp | wc -l ) )
+      rm -f $SSR.temp
+    done
+    if [[ $( echo ${is_paired[@]} | tr ' ' '\n' | uniq ) == 1 && $( echo ${is_single[@]} | tr ' ' '\n' | uniq ) == 0 ]] ; then
+		paired="yes"
+	else
+		if [[ $( echo ${is_paired[@]} | tr ' ' '\n' | uniq ) == 0 && $( echo ${is_single[@]} | tr ' ' '\n' | uniq ) == 1 ]] ; then
+			paired="no"
+		else
+			paired="yes or no"
+		fi	
+	fi
+    
+## Writting the output <w>.
+    if [[ $STAGING == 1 ]] ; then
+      echo ""$'\t'$sourcename$'\t'$sourcename$'\t'""$'\t'$antibody$'\t'""$'\t'$details$'\t'$GSE$'\t'$GSM$'\t'"public"$'\t'$repository$'\t'$experimenttype$'\t'""$'\t'""$'\t'$srapath$'\t'"NULL"$'\t'""$'\t'$paired$'\t'$mappinggenome$'\t'$rawreads$'\t'""$'\t'""$'\t'""$'\t'""$'\t'$aligner$'\t'$rawdatacode$'\t'""$'\t'""$'\t'$today$'\t'"pending"$'\t'""$'\t'""$'\t'$organism$'\t'"geocrawler" >> $OUTPUTFILE
+    else
+      echo $GSM$'\t'$GSE$'\t'$GPL$'\t'$SRA$'\t'$bioproject$'\t'$biosample$'\t'$pubmedid$'\t'$submissiondate$'\t'$title$'\t'$instrument$'\t'$librarystrategy$'\t'$libraryselection$'\t'$taxid$'\t'$sourcename$'\t'$description$'\t'$characteristics$'\t'$rawreads$'\t'$paired$'\t'$keywords01$'\t'$keywords02$'\t'$keywords03 >> $OUTPUTFILE
+    fi
+    rm -f $GSM".soft"
+    
+  done
+    
+  echo "    series done."
+  rm -f temp_$SUFFIX.txt
+  
+done
+echo
+echo "  - Output file: $OUTPUTFILE "
+echo
+echo "==> Done."
+echo
