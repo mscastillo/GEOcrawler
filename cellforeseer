@@ -1,0 +1,97 @@
+#!/bin/bash
+
+## VARIABLES INITIALIZATION # # # # # # # # # # # # # # # # # # # # # # 
+     TODAY=$(date +%Y%m%d)
+    SUFFIX=$RANDOM
+## PARAMETERS # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+ SEMANTICTYPES='T024,T025,T018' # ,T028,T045
+ STOPWORDS=''
+ ONTOLOGIES='GO,BTO,MESH'
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+usage() {
+	echo 
+    echo -e '\033[1mUtility to predict tissues and cell types based on text minning.\033[0m'
+	echo 
+	echo -e '\033[1mNAME\033[0m'
+	echo '     cellforeseer'
+	echo 
+	echo -e '\033[1mSYNOPSIS\033[0m'
+	echo '     usage: cellforeseer [ -f | --file <input file> ]'
+	echo 
+    echo -e '\033[1mDESCRIPTION\033[0m'
+	echo '     This utility will parse the content of a text file to the NCBO annotator API to find potential tissues and cell types.'
+	echo '     The output will be printed on the terminal as a columns with the unique terms matched.'
+	echo 
+	echo '     The options are as follows:'
+	echo 
+    echo -e '     \033[1m-h\033[0m | \033[1m--help\033[0m'
+    echo '             Show this message.'
+    echo -e '     \033[1m-f\033[0m | \033[1m--file\033[0m <argument>'
+	echo '             A text file with the description of the experiment.'
+	echo
+    echo -e '\033[1mEXAMPLES\033[0m'
+    echo
+	echo '     # To find cell types form a text:'
+	echo '             echo "primary CD4+ T-cells. Cells were obtained from donor buffy coat2 > info.txt'
+	echo '             echo "and purified using sucrose gradient and Ig-beads" >> info.txt'
+	echo '             cellforeseer -f info.txt'
+    echo
+	echo '     # Combinig foreseer with geocrawler output:'
+	echo '             geocrawler -g GSE25000 -o table.tsv'
+	echo "             cat table.tsv | awk 'BEGIN { FS=\"\t\";RS=\"\n\" } {print \$5. \$10}' | tail -n +2 > info.txt"
+	echo '             cellforeseer -f info.txt'
+	echo
+    echo -e '\033[1mLAST UPDATE\033[0m'
+	echo '     20/12/2013'
+	echo
+	exit 1
+}
+
+# Colons appearing after a flag indicate that getopts should expect an argument with that flag. Using the flag without an argument causes an error.
+OPTIONS=$(getopt -o "hf:" -l "help,file:" -- "$@")
+if [[ $? -ne 0 ]] ; then
+  # Unknown option.
+  exit 1
+fi
+eval set -- "$OPTIONS"
+while true ; do
+  case "$1" in
+    -h | --help ) usage ;
+    shift 2;;
+	-f | --file) FILE=$2 ;
+	shift 2;;
+    -- | --*) break ;;
+  esac
+done
+
+if [[ ! -f $FILE ]] ; then exit 1 ; fi
+TEXT=$( cat $FILE | tr '%' 'percent'| tr '(' ' '| tr ')' ' ' | tr '_' ' ' | tr '.' ' ' | tr ':' ' ' | tr ',' ' ' | tr ' ' '+'  )
+
+## Constructing the query to download the XML file. For more information, see http://rest.bioontology.org/test_oba.html
+POST="apikey=4ea81d74-8960-4525-810b-fa1baab576ff&format=xml&textToAnnotate=$TEXT&semanticTypes=$SEMANTICTYPES&withSynonyms=true&minTermSize=1&levelMax=5"
+URL="http://rest.bioontology.org/obs/annotator"
+## Downloading and parsing output.
+
+curl -silent --data "$POST" $URL > xml.$SUFFIX.temp
+cat xml.$SUFFIX.temp | grep -P '<preferredName>(\S+)</preferredName>' | awk 'BEGIN { FS="<preferredName>" ; RS="</preferredName>\n" } { print $2 }'
+sed -n '/<synonyms>/,/<\/synonyms>/p' xml.$SUFFIX.temp | grep -v 'synonyms' | awk 'BEGIN { FS="<string>" ; RS="</string>\n" } { print $2 }'
+rm -f xml.$SUFFIX.temp
+
+
+# EXAMPLE # # # # # # # # # #
+
+
+exit 0
+
+cat geocrawler_output_20131209.tsv | awk 'BEGIN { FS="\t";RS="\n" } {print $7". "$11". "$12". "$13}' | tail -n +2 > info.txt
+
+while read LINE ; do
+    echo $LINE > temp.$SUFFIX.temp
+    ./cellforeseer -f temp.$SUFFIX.temp | sort | uniq -ic -w 6 >> results.txt
+done < info.txt
+
+
+cat results.txt | awk 'BEGIN { RS="\n" } { $1="" ; print "name:"$0 }' | sort | uniq -i > results2.txt
+wget -c -nv -q "http://www.brenda-enzymes.info/ontology/tissue/tree/update/update_files/BrendaTissueOBO" -O bto.txt
+grep -o -f  results2.txt bto.txt | sort | uniq -ic
