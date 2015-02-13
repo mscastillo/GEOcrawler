@@ -17,7 +17,7 @@ Clone this repository and update your path or symbolic links for quick access.
 
 ### How I use it?
 
-Run `geocrawler` with the `-g` option to retrieve all the samples in a given series. For eaxmple:
+Run `geocrawler` with the `-g` option to retrieve all the samples in a given series. For instances:
 
 ```bash
 geocrawler -g GSE48086
