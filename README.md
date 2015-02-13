@@ -7,6 +7,8 @@ A web-crawler to retrieve information from GEO.
 
 This repository includes a program for downloading and processing data from Gene Expression Omnibus (GEO). The results are in a table with meta-information characterizing all experiments included in a given study grom GEO.
 
+For additional details chek out the [Wiki](https://github.com/mscastillo/GEOcrawler/wiki).
+
 ### Dependencies
 
 All the files are downloaded from GEO using `wget`. Subsequently, they are converted to *unix* file-format using `dos2unix`. There is no additional dependencies apart from common text processing tools as: `cat`, `grep`, `wc`, etc...
